@@ -376,6 +376,205 @@ C) FIN DE OBRA`;
       break;
 
     // ==========================================
+    // RAMA 320: PERSONAL -> VISITA TÉCNICA (PV)
+    // ==========================================
+    case 320: // PV2 - Datos CFE capturados
+      user.visDatosCfe = msg; 
+      reply = `📸 Excelente. Ahora envía la *FOTO del Medidor* (Obligatoria):`; 
+      user.step = 321;
+      break;
+
+    case 321: // Combina PV3 y PV4
+      if (!mediaUrl) {
+        reply = "⚠️ Por favor, adjunta la foto del medidor para continuar."; 
+        break;
+      }
+      user.visFotoMedidor = mediaUrl; 
+      reply = `🏠 Responde en un solo mensaje:
+1️⃣ *Inmueble*: (CASA / COMERCIO / INDUSTRIA / OTRO)
+2️⃣ *Superficie*: (TECHO CONCRETO / LAMINA / SUELO)
+3️⃣ *Inclinación y Orientación*: (ej. PLANO, SUR)`; 
+      user.step = 322;
+      break;
+
+    case 322: // Combina PV5 y PV6
+      user.visInmuebleParams = msg; 
+      reply = `⚡ Siguientes datos:
+1️⃣ *Sombras y Gas*: (ej. SIN SOMBRAS, GAS NO)
+2️⃣ *Transformador y Acometida*: (ej. POSTE, AÉREA)
+3️⃣ *Distancia al trafo (m)*:`; 
+      user.step = 323;
+      break;
+
+    case 323: // Combina PV7 y PV8
+      user.visTrafoParams = msg; 
+      reply = `🔌 Instalación eléctrica:
+1️⃣ *Suministro*: (MONO / BIFÁSICO / TRIFÁSICO)
+2️⃣ *Protección*: (FUSIBLES / TERMOMAGNÉTICO + Amperaje)
+3️⃣ *Tierra física*: (SI / NO y distancia en m)`; 
+      user.step = 324;
+      break;
+
+    case 324: // Combina PV9 y PV10
+      user.visElecParams = msg; 
+      reply = `📏 *Distancias y Preferencias*:
+1️⃣ Distancia PANEL a INVERSOR (m):
+2️⃣ Distancia INVERSOR a TABLERO (m):
+3️⃣ Preferencias del cliente: (ej. NO ver paneles, NO ver tubería)`; 
+      user.step = 325;
+      break;
+
+    case 325: // PV11 - Evidencias fotográficas múltiples
+      user.visDistPreferencias = msg; 
+      reply = `📸 *Evidencia Fotográfica* (Envía las fotos necesarias):
+- Azotea/Sitio
+- Ruta tubería
+- Centro carga abierto
+- Muro para inversor
+
+Cuando termines de enviar las fotos, escribe la palabra *LISTO*.`; 
+      user.step = 326;
+      break;
+
+    case 326: // Espera de fotos o salto a Croquis
+      if (cmd !== "listo") {
+        reply = "✅ Foto recibida. Envía la siguiente o escribe *LISTO*.";
+        break;
+      }
+      reply = `✍️ Por último, envía la *FOTO DEL DIBUJO/CROQUIS* de instalación (Obligatorio):`; 
+      user.step = 327;
+      break;
+
+    case 327: // PV13 - Cierre de Visita
+      if (!mediaUrl) {
+         reply = "⚠️ Adjunta la foto del croquis."; 
+         break;
+      }
+      user.visCroquis = mediaUrl; 
+      reply = `✅ *Visita Técnica finalizada.* Estatus: INFO COMPLETA (Pasando a diseño/cotización).
+
+Escribe *MENU* para volver al inicio.`;
+      delete sessions[from];
+      break;
+
+
+    // ==========================================
+    // RAMA 330: PERSONAL -> MONITOREO (MON)
+    // ==========================================
+    case 330: // Primer paso que se asigna en el case 303
+      if (!mediaUrl) {
+        reply = "⚠️ La FOTO del monitor físico es obligatoria."; 
+        break;
+      }
+      user.monFoto = mediaUrl; 
+      reply = `📶 Por favor, registra la red:
+*WIFI_NOMBRE* + *WIFI_CLAVE*:`; 
+      user.step = 331;
+      break;
+
+    case 331:
+      user.monWifi = msg; 
+      reply = `🔎 Registra el *HALLAZGO* principal:
+(SIN ENERGIA / SIN INTERNET / SIN SEÑAL / CONFIGURACION / OTRO) + Pasos realizados:`; 
+      user.step = 332;
+      break;
+
+    case 332:
+      user.monHallazgo = msg; 
+      reply = `✅ Resultado final. ¿El equipo quedó *EN LÍNEA*?
+
+A) SÍ (EN LÍNEA)
+B) NO (NO EN LÍNEA)`; 
+      user.step = 333;
+      break;
+
+    case 333:
+      if (cmd === "a" || cmd === "si") {
+        reply = `📸 Excelente. Envía la *foto de evidencia en línea* para cerrar el ticket:`; 
+        user.step = 334;
+      } else {
+        reply = `⚠️ Registra el plan a seguir:
+(REQUIERE VISITA 2 / ESCALAR / CAMBIO EQUIPO):`; 
+        user.step = 335;
+      }
+      break;
+
+    case 334: // Cierre Monitoreo (SI en línea)
+      user.monEvidenciaFinal = mediaUrl; 
+      reply = `✅ *Ticket de Monitoreo actualizado exitosamente.*
+
+Escribe *MENU* para volver al inicio.`;
+      delete sessions[from];
+      break;
+
+    case 335: // Cierre Monitoreo (NO en línea)
+      user.monPlan = msg; 
+      reply = `✅ *Ticket de Monitoreo actualizado exitosamente (Pendiente de acción).*
+
+Escribe *MENU* para volver al inicio.`;
+      delete sessions[from];
+      break;
+
+    // ==========================================
+    // RAMA 340: PERSONAL -> SUPERVISIÓN (SUP)
+    // ==========================================
+    case 340: // Recepción Momento de Obra
+      if (cmd === "a" || cmd === "inicio") {
+        user.supMomento = "INICIO_OBRA"; // [cite: 98]
+        reply = `🏗️ *INICIO DE OBRA*.
+Por favor, envía la FOTO de los *materiales entregados*:`; // [cite: 99]
+        user.step = 341;
+      } else if (["b", "c", "durante", "fin"].includes(cmd)) {
+        user.supMomento = "PROCESO_FIN_OBRA"; // [cite: 102]
+        reply = `🏗️ *DURANTE / FIN DE OBRA*.
+Sube las evidencias del proceso (mínimo 6 fotos). 
+Cuando termines de subir las fotos, escribe tu *COMENTARIO/REPORTE*:`; // [cite: 104]
+        user.step = 345;
+      } else {
+        reply = "❌ Selecciona A, B o C.";
+      }
+      break;
+
+    case 341: // SUP Inicio - Foto Materiales
+      user.supFotoMateriales = mediaUrl; // [cite: 99]
+      reply = `📸 Recibido. Ahora envía la foto de *Firma del instalador* (recibió material):`; // [cite: 100]
+      user.step = 342;
+      break;
+
+    case 342: // SUP Inicio - Foto Firma Instalador
+      user.supFotoInstalador = mediaUrl; // [cite: 100]
+      reply = `📸 Recibido. Por último, envía la foto de *Firma del cliente*:`; // [cite: 101]
+      user.step = 343;
+      break;
+
+    case 343: // Cierre SUP Inicio
+      user.supFotoCliente = mediaUrl; // [cite: 101]
+      reply = `✅ *Supervisión de Inicio de Obra registrada.*
+
+Escribe *MENU* para volver al inicio.`;
+      delete sessions[from];
+      break;
+
+    case 345: // Cierre SUP Durante/Fin (Después de recibir fotos y comentario)
+      user.supComentario = msg; // [cite: 104]
+      reply = `✅ Cierre de reporte. Selecciona el estatus final:
+
+A) OK
+B) DESVIACIÓN MENOR
+C) DESVIACIÓN MAYOR
+D) DETENER POR SEGURIDAD`; // [cite: 105]
+      user.step = 346;
+      break;
+
+    case 346: // Estatus Final SUP
+      user.supEstatus = msg; // [cite: 105]
+      reply = `✅ *Ticket de Supervisión actualizado exitosamente.*
+
+Escribe *MENU* para volver al inicio.`;
+      delete sessions[from];
+      break;
+
+    // ==========================================
     // RAMA 400: ASESOR - Handoff
     // ==========================================
     case 400:
