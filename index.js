@@ -376,6 +376,79 @@ C) FIN DE OBRA`;
       break;
 
     // ==========================================
+    // RAMA 310: PERSONAL -> MANTENIMIENTO (MTTO)
+    // ==========================================
+    case 310: // PM2 - Tipo de Mantenimiento
+      if (cmd === "a" || cmd === "preventivo") {
+        user.mttoTipo = "PREVENTIVO";
+        reply = `📋 *Mantenimiento Preventivo*
+Checklist obligatorio:
+1️⃣ Limpieza de paneles
+2️⃣ Revisión de gabinetes/protecciones
+3️⃣ Revisión de producción del inversor
+4️⃣ Monitoreo en línea
+
+✍️ Escribe los números de las tareas que ya completaste separados por comas (ejemplo: 1, 2, 3, 4):`;
+        user.step = 3101; // Nuevo paso intermedio para validar el checklist
+      } else if (cmd === "b" || cmd === "correctivo") {
+        user.mttoTipo = "CORRECTIVO";
+        reply = `🛠️ *Mantenimiento Correctivo*
+¿Qué tipo de falla encontraste?
+
+A) Inversor no funciona
+B) Panel roto
+C) Estructura mal estado
+D) Falla protecciones
+E) Otro`;
+        user.step = 315;
+      } else {
+        reply = "❌ Por favor selecciona A (PREVENTIVO) o B (CORRECTIVO).";
+      }
+      break;
+
+    // --- SUB-RAMA PREVENTIVO ---
+    case 3101: // Validación de Selección Múltiple del Checklist
+      const input = msg.replace(/\s/g, ''); // Quitamos espacios para validar fácil
+      
+      // Validamos que contenga al menos el 1, 2, 3 y 4
+      if (input.includes('1') && input.includes('2') && input.includes('3') && input.includes('4')) {
+         user.mttoChecklistConfirmado = true;
+         reply = `✅ Checklist validado. 
+         
+📸 Ahora, por favor envía las *FOTOS de evidencia* (paneles, gabinete, app). 
+Cuando termines de enviar todas las fotos, escribe la palabra *LISTO*:`;
+         user.step = 311;
+      } else {
+         reply = `⚠️ El checklist es obligatorio para continuar. 
+         
+Asegúrate de realizar todas las tareas y escribe *1, 2, 3, 4* para confirmar:`;
+      }
+      break;
+
+    case 311: // PM4 - Recepción de fotos Preventivo
+      if (cmd !== "listo") {
+        // user.mttoFotos.push(mediaUrl); // Aquí backend guardará el array de fotos
+        reply = "✅ Foto recibida. Envía la siguiente o escribe *LISTO*.";
+        break;
+      }
+      reply = `✅ Evidencias recibidas. Selecciona el *Cierre del ticket*: 
+
+A) OK
+B) OBSERVACIONES
+C) REQUIERE CORRECTIVO`;
+      user.step = 312;
+      break;
+
+    case 312: // Cierre Preventivo
+      user.mttoCierre = msg; 
+      reply = `✅ *Ticket de Mantenimiento Preventivo cerrado exitosamente.*
+
+Escribe *MENU* para volver al inicio.`;
+      delete sessions[from];
+      break;
+
+      
+    // ==========================================
     // RAMA 320: PERSONAL -> VISITA TÉCNICA (PV)
     // ==========================================
     case 320: // PV2 - Datos CFE capturados
