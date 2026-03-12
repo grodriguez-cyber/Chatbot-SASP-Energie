@@ -120,7 +120,7 @@ C) DIAGNÓSTICO`;
       break;
 
     // ==========================================
-    // RAMA 100: CLIENTE -> COTIZAR
+    // RAMA 100: CLIENTE -> COTIZAR (Paso a paso)
     // ==========================================
     case 100: // C2 - Tipo
       if (!tiposCotizacion[cmd]) {
@@ -128,21 +128,28 @@ C) DIAGNÓSTICO`;
         break;
       }
       user.cotizacionTipo = tiposCotizacion[cmd];
-      reply = `✍️ Por favor, escribe tu Nombre completo, Teléfono y Correo electrónico (opcional):
-Ejemplo: Juan Pérez, 5551234567, juan@correo.com`;
+      reply = `✍️ Por favor, escribe tu *Nombre completo*:`;
       user.step = 101;
       break;
 
-    case 101: // C3 - Datos
-      user.datosContacto = msg; // Guarda toda la cadena proporcionada
-      user.telefonoWa = from.replace("whatsapp:", "");
-      reply = `📍 Envía la ubicación (Share Location) donde se requiere el servicio.
-
-Presiona ➕ o 📎 y selecciona *Ubicación*.`;
+    case 101: // C3 - Nombre
+      user.nombre = msg;
+      user.telefonoWa = from.replace("whatsapp:", ""); // Capturamos el teléfono automáticamente
+      reply = `📧 Escribe tu *Correo electrónico*.
+      
+(Si no deseas darlo, escribe *OMITIR*):`;
       user.step = 102;
       break;
 
-    case 102: // C4 - Ubicación
+    case 102: // C3 - Correo (Opcional)
+      user.correo = (cmd === "omitir") ? "No proporcionado" : msg;
+      reply = `📍 Envía la *Ubicación* (Share Location) donde se requiere el servicio.
+
+Presiona ➕ o 📎 y selecciona *Ubicación*.`;
+      user.step = 103;
+      break;
+
+    case 103: // C4 - Ubicación
       if (!lat || !lng) {
         reply = "⚠️ Necesito la ubicación GPS. Usa el botón 📍.";
         break;
@@ -150,18 +157,20 @@ Presiona ➕ o 📎 y selecciona *Ubicación*.`;
       user.lat = lat;
       user.lng = lng;
 
-      // C5 - Evidencia según tipo
+      // C5 - Petición de evidencia según tipo
       if (user.cotizacionTipo === "☀️ Solar") {
-        reply = `📸 Por favor envía una FOTO de tu recibo de CFE (o PDF), o escribe *SIN RECIBO*.`;
+        reply = `📸 Por favor envía una FOTO de tu recibo de CFE (o PDF). 
+        
+(Si no cuentas con él, escribe *SIN RECIBO*):`;
       } else if (user.cotizacionTipo === "🔋 Baterías") {
         reply = `🔋 ¿Cuál es tu objetivo? (ej. Respaldo, Aislado, Híbrido) y qué cargas/equipos quieres conectar:`;
       } else {
         reply = `📊 ¿Cuál es el giro de tu inmueble y tu pago aprox. mensual a CFE?`;
       }
-      user.step = 103;
+      user.step = 104;
       break;
 
-    case 103: // C5 Captura de evidencia o texto
+    case 104: // C5 Captura de evidencia o texto
       if (user.cotizacionTipo === "☀️ Solar" && mediaUrl) {
         user.evidencia = "RECIBO_CFE";
         user.media = mediaUrl;
@@ -169,20 +178,28 @@ Presiona ➕ o 📎 y selecciona *Ubicación*.`;
         user.evidencia = msg; 
       }
 
-      reply = resumenCotizacion(user);
-      user.step = 104;
+      // Actualizamos la función resumen en este punto
+      reply = `📋 *Resumen de Cotización*
+
+📌 Tipo: ${user.cotizacionTipo}
+👤 Nombre: ${user.nombre}
+📧 Correo: ${user.correo}
+📞 Tel Wa: ${user.telefonoWa}
+📍 Ubicación: Recibida ✅
+📎 Detalle/Evidencia: ${user.media ? "Foto/Documento recibido" : user.evidencia}
+
+🅰️ Confirmar y generar folio
+🅱️ Cancelar`;
+      user.step = 105;
       break;
 
-    case 104: // C6 - Confirmación y Regla de Siguiente Paso
+    case 105: // C6 - Confirmación y Regla de Siguiente Paso
       if (cmd === "a") {
         const folio = Math.floor(1000 + Math.random() * 9000); 
         
-        // Evaluar estatus inicial (Regla post-captura)
-        let mensajeCierre = "";
+        let mensajeCierre = "Te llamaremos para completar información.";
         if (user.cotizacionTipo === "☀️ Solar" && user.evidencia === "RECIBO_CFE") {
           mensajeCierre = "Te enviaremos PRE-COTIZACION vía WhatsApp pronto.";
-        } else {
-          mensajeCierre = "Te llamaremos para completar información.";
         }
 
         reply = `✅ Registrado. Tu folio es *${folio}*.
@@ -197,7 +214,7 @@ Escribe *MENU* para volver al inicio.`;
       break;
 
     // ==========================================
-    // RAMA 200: CLIENTE -> SOPORTE
+    // RAMA 200: CLIENTE -> SOPORTE (Paso a paso)
     // ==========================================
     case 200: // S2 - Identificación recibida
       user.folioSoporte = msg; 
@@ -218,39 +235,56 @@ E) OTRO`;
 
 Escribe *MENU* para volver al inicio.`; 
         delete sessions[from];
+
       } else if (cmd === "b" || cmd === "falla") {
-        reply = `⚠️ Por favor, envíanos en un solo mensaje:
-1️⃣ Ubicación (Share Location 📍) si es distinta.
-2️⃣ Foto o Video 📸 de la falla.
-3️⃣ Una frase corta describiendo el problema.`; 
-        user.step = 202;
+        reply = `📍 Para reportar la falla, primero envíanos la *Ubicación* (Share Location).
+        
+Presiona ➕ o 📎 y selecciona *Ubicación*:`; 
+        user.step = 202; // Inicia flujo paso a paso de falla
+
       } else if (["c", "d", "e", "factura", "garantia", "garantía", "otro"].includes(cmd)) {
         reply = `✍️ Por favor, describe brevemente qué requieres para asignarlo al equipo:`; 
-        user.step = 203;
+        user.step = 205; // Salta al cierre de estas opciones
       } else {
         reply = "❌ Por favor selecciona una opción válida (A, B, C, D o E).";
       }
       break;
 
-    case 202: // SOPORTE - Falla (Captura de evidencia)
-      user.fallaDesc = msg;
-      user.fallaMedia = mediaUrl; 
+    case 202: // SOPORTE Falla - Captura Ubicación
+      if (!lat || !lng) {
+        reply = "⚠️ Necesito la ubicación GPS. Usa el botón 📍.";
+        break;
+      }
       user.fallaLat = lat;
       user.fallaLng = lng;
-      reply = `✅ Evidencia de falla registrada. Nuestro equipo de mantenimiento lo revisará.
+      reply = `📸 Gracias. Ahora, envía una *Foto o Video* de la falla.
+      
+(Si no tienes, escribe *OMITIR*):`;
+      user.step = 203;
+      break;
+      
+    case 203: // SOPORTE Falla - Captura Foto/Video
+      user.fallaMedia = mediaUrl ? mediaUrl : "No proporcionada";
+      reply = `✍️ Por último, escribe una frase corta describiendo el problema:`;
+      user.step = 204;
+      break;
+
+    case 204: // SOPORTE Falla - Captura Descripción
+      user.fallaDesc = msg;
+      reply = `✅ Falla registrada correctamente. Nuestro equipo de mantenimiento lo revisará.
 
 Escribe *MENU* para volver al inicio.`; 
       delete sessions[from];
       break;
 
-    case 203: // SOPORTE - Factura/Garantía/Otro
+    case 205: // SOPORTE - Factura/Garantía/Otro
       user.soporteDetalle = msg; 
       reply = `✅ Tu solicitud ha sido registrada y asignada.
 
 Escribe *MENU* para volver al inicio.`;
       delete sessions[from];
       break;
-
+      
     // ==========================================
     // RAMA 300: PERSONAL - Validación y Menú
     // ==========================================
