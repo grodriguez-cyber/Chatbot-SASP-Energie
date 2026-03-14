@@ -13,9 +13,11 @@ const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutos en milisegundos
 // CONFIGURACIÓN SASP
 // =======================
 const tiposCotizacion = {
-  "a": "☀️ Solar",
-  "b": "🔋 Baterías",
-  "c": "📊 Diagnóstico"
+  "a": "Paneles Solares",
+  "b": "Calentadores Solares",
+  "c": "Diagnóstico Energético",
+  "d": "Alumbrado Público",
+  "e": "Otro"
 };
 
 // =======================
@@ -41,20 +43,31 @@ app.post("/whatsapp", async (req, res) => {
   user.lastActivity = Date.now(); // Actualizar timestamp de actividad
   let reply = "";
 
+  // Helper para cerrar venta/cotización y dar folio
+  const darFolioYDespedir = () => {
+    const folio = Math.floor(1000 + Math.random() * 9000);
+    const mensaje = `✅ Tu solicitud ha sido registrada con el folio *${folio}*.
+
+Un asesor se pondrá en contacto a la brevedad.
+Escribe *MENU* para volver al inicio.`;
+    delete sessions[from];
+    return mensaje;
+  };
+
   // =======================
   // COMANDOS GLOBALES
   // =======================
   const cmd = msg?.toLowerCase();
 
+  const menuPrincipal = `👋 Hola!! soy el asesor de Energie Consultores, para poder brindar apoyo dime:
+
+A) Quiero ser Cliente
+B) Soy Cliente
+C) Soy Staff`;
+
   if (cmd === "menu") {
     sessions[from] = { step: 1, lastActivity: Date.now() };
-    reply = `👋 Hola, soy SASP | Energie Consultores.
-
-¿Cómo deseas ingresar?
-
-A) CLIENTE
-B) PERSONAL
-C) ASESOR`;
+    reply = menuPrincipal;
     return send(res, reply);
   }
 
@@ -66,13 +79,7 @@ C) ASESOR`;
     
   if (user.step === 0) {
     user.step = 1;
-    reply = `👋 Hola, soy SASP | Energie Consultores.
-
-¿Cómo deseas ingresar?
-
-A) CLIENTE
-B) PERSONAL
-C) ASESOR`;
+    reply = menuPrincipal;
     return send(res, reply);
   }
 
@@ -83,138 +90,128 @@ C) ASESOR`;
 
     // STATE 1 — FILTRO DE ENTRADA (S0)
     case 1:
-      if (cmd === "a" || cmd === "cliente") {
-        reply = `¿Qué necesitas?
+      if (cmd === "a" || cmd === "quiero ser cliente") {
+        reply = `¿De qué servicio te interesa una propuesta a tu medida?
 
-🅰️ COTIZAR
-🅱️ SOPORTE`;
-        user.step = 10; 
-      } else if (cmd === "b" || cmd === "personal") {
+A) Paneles Solares
+B) Calentadores Solares
+C) Diagnóstico Energético
+D) Alumbrado Público
+E) Otro`;
+        user.step = 100; 
+      } else if (cmd === "b" || cmd === "soy cliente") {
+        reply = `🛠️ Escribe tu número de FOLIO de 4 dígitos, o escribe *NUEVO* si no tienes folio:`;
+        user.step = 200; 
+      } else if (cmd === "c" || cmd === "soy staff") {
         reply = `🔒 Acceso PERSONAL. Ingresa tu CLAVE de usuario:`;
         user.step = 300; 
-      } else if (cmd === "c" || cmd === "asesor") {
-        reply = `👤 Por favor, escribe tu nombre para que un asesor te contacte:`;
-        user.step = 400; 
       } else {
         reply = "❌ Por favor selecciona A, B o C.";
       }
       break;
 
     // ==========================================
-    // RAMA 10: CLIENTE - MENÚ (C1)
+    // RAMA 100: QUIERO SER CLIENTE (Nuevo Flujo)
     // ==========================================
-    case 10:
-      if (cmd === "a" || cmd === "cotizar") {
-        reply = `📋 ¿Qué tipo de cotización buscas?
-
-A) SOLAR
-B) BATERÍAS
-C) DIAGNÓSTICO`;
-        user.step = 100; 
-      } else if (cmd === "b" || cmd === "soporte") {
-        reply = `🛠️ Escribe tu número de FOLIO de 4 dígitos, o escribe *NUEVO* si no tienes folio:`;
-        user.step = 200; 
-      } else {
-        reply = "❌ Selecciona A (COTIZAR) o B (SOPORTE).";
-      }
-      break;
-
-    // ==========================================
-    // RAMA 100: CLIENTE -> COTIZAR (Paso a paso)
-    // ==========================================
-    case 100: // C2 - Tipo
+    case 100: // C1 - Tipo de servicio
       if (!tiposCotizacion[cmd]) {
-        reply = "❌ Selecciona A, B o C.";
+        reply = "❌ Selecciona A, B, C, D o E.";
         break;
       }
       user.cotizacionTipo = tiposCotizacion[cmd];
-      reply = `✍️ Por favor, escribe tu *Nombre completo*:`;
-      user.step = 101;
-      break;
-
-    case 101: // C3 - Nombre
-      user.nombre = msg;
-      user.telefonoWa = from.replace("whatsapp:", ""); // Capturamos el teléfono automáticamente
-      reply = `📧 Escribe tu *Correo electrónico*.
       
-(Si no deseas darlo, escribe *OMITIR*):`;
-      user.step = 102;
-      break;
+      if (user.cotizacionTipo === "Paneles Solares" || user.cotizacionTipo === "Diagnóstico Energético") {
+        reply = `Proporcionanos tu nombre:`;
+        user.step = 110;
+      } else if (user.cotizacionTipo === "Calentadores Solares") {
+        reply = `Tu servicio es para:
 
-    case 102: // C3 - Correo (Opcional)
-      user.correo = (cmd === "omitir") ? "No proporcionado" : msg;
-      reply = `📍 Envía la *Ubicación* (Share Location) donde se requiere el servicio.
-
-Presiona ➕ o 📎 y selecciona *Ubicación*.`;
-      user.step = 103;
-      break;
-
-    case 103: // C4 - Ubicación
-      if (!lat || !lng) {
-        reply = "⚠️ Necesito la ubicación GPS. Usa el botón 📍.";
-        break;
+A) Casa
+B) Hotel 
+C) Alberca
+D) Otro`;
+        user.step = 120;
+      } else if (user.cotizacionTipo === "Alumbrado Público") {
+        reply = `🅰️ ¿Quieres adquirir led?
+🅱️ Requieres un proyecto eléctrico`;
+        user.step = 130;
+      } else if (user.cotizacionTipo === "Otro") {
+        reply = `Por favor especifica, ¿qué deseas?`;
+        user.step = 140;
       }
-      user.lat = lat;
-      user.lng = lng;
+      break;
 
-      // C5 - Petición de evidencia según tipo
-      if (user.cotizacionTipo === "☀️ Solar") {
-        reply = `📸 Por favor envía una FOTO de tu recibo de CFE (o PDF). 
-        
-(Si no cuentas con él, escribe *SIN RECIBO*):`;
-      } else if (user.cotizacionTipo === "🔋 Baterías") {
-        reply = `🔋 ¿Cuál es tu objetivo? (ej. Respaldo, Aislado, Híbrido) y qué cargas/equipos quieres conectar:`;
+    // --- SUB-RAMA: Paneles Solares / Diagnóstico Energético ---
+    case 110: 
+      user.nombre = msg;
+      reply = `Proporciona tu recibo en imagen o pdf, si no lo tienes a la mano escribe NO LO TENGO`;
+      user.step = 111;
+      break;
+
+    case 111: 
+      if (cmd === "no lo tengo") {
+        reply = `Tu servicio es:
+
+A) Doméstico
+B) Comercial
+C) Industrial`;
+        user.step = 112;
       } else {
-        reply = `📊 ¿Cuál es el giro de tu inmueble y tu pago aprox. mensual a CFE?`;
+        // Asumimos que envió imagen o un texto distinto que funge como recibo
+        user.evidenciaRecibo = mediaUrl ? mediaUrl : msg;
+        reply = darFolioYDespedir();
       }
-      user.step = 104;
       break;
 
-    case 104: // C5 Captura de evidencia o texto
-      if (user.cotizacionTipo === "☀️ Solar" && mediaUrl) {
-        user.evidencia = "RECIBO_CFE";
-        user.media = mediaUrl;
-      } else {
-        user.evidencia = msg; 
-      }
-
-      // Actualizamos la función resumen en este punto
-      reply = `📋 *Resumen de Cotización*
-
-📌 Tipo: ${user.cotizacionTipo}
-👤 Nombre: ${user.nombre}
-📧 Correo: ${user.correo}
-📞 Tel Wa: ${user.telefonoWa}
-📍 Ubicación: Recibida ✅
-📎 Detalle/Evidencia: ${user.media ? "Foto/Documento recibido" : user.evidencia}
-
-🅰️ Confirmar y generar folio
-🅱️ Cancelar`;
-      user.step = 105;
+    case 112:
+      user.servicioTipo = msg; // Guarda si es doméstico, comercial o industrial
+      reply = `¿Cuánto pagas mensualmente a CFE?`;
+      user.step = 113;
       break;
 
-    case 105: // C6 - Confirmación y Regla de Siguiente Paso
-      if (cmd === "a") {
-        const folio = Math.floor(1000 + Math.random() * 9000); 
-        
-        let mensajeCierre = "Te llamaremos para completar información.";
-        if (user.cotizacionTipo === "☀️ Solar" && user.evidencia === "RECIBO_CFE") {
-          mensajeCierre = "Te enviaremos PRE-COTIZACION vía WhatsApp pronto.";
-        }
+    case 113:
+      user.pagoCfe = msg;
+      reply = darFolioYDespedir();
+      break;
 
-        reply = `✅ Registrado. Tu folio es *${folio}*.
+    // --- SUB-RAMA: Calentadores Solares ---
+    case 120:
+      user.calentadorUso = msg; // Guarda la opción elegida
+      reply = `Proporcionanos tu nombre:`;
+      user.step = 121;
+      break;
+      
+    case 121:
+      user.nombre = msg;
+      reply = darFolioYDespedir();
+      break;
 
-${mensajeCierre}
-Escribe *MENU* para volver al inicio.`;
-        delete sessions[from];
-      } else {
-        reply = "❌ Proceso cancelado. Escribe *MENU*.";
-        delete sessions[from];
-      }
+    // --- SUB-RAMA: Alumbrado Público ---
+    case 130:
+      user.alumbradoOpcion = msg; // Guarda si quiere LED o proyecto eléctrico
+      reply = `Proporcionanos tu nombre:`;
+      user.step = 131;
+      break;
+      
+    case 131:
+      user.nombre = msg;
+      reply = darFolioYDespedir();
+      break;
+
+    // --- SUB-RAMA: Otro ---
+    case 140:
+      user.otroEspecificacion = msg; 
+      reply = `Proporcionanos tu nombre:`;
+      user.step = 141;
+      break;
+      
+    case 141:
+      user.nombre = msg;
+      reply = darFolioYDespedir();
       break;
 
     // ==========================================
-    // RAMA 200: CLIENTE -> SOPORTE (Paso a paso)
+    // RAMA 200: SOY CLIENTE -> SOPORTE
     // ==========================================
     case 200: // S2 - Identificación recibida
       user.folioSoporte = msg; 
@@ -289,7 +286,6 @@ Escribe *MENU* para volver al inicio.`;
     // RAMA 300: PERSONAL - Validación y Menú
     // ==========================================
     case 300: // P1 - Validación de clave
-      // Aquí validarán la clave real en la base de datos
       if (msg === "1234") { // Clave temporal
          user.intentos = 0;
          reply = `✅ Acceso concedido.
@@ -594,15 +590,15 @@ Escribe *MENU* para volver al inicio.`;
     // ==========================================
     case 340: // Recepción Momento de Obra
       if (cmd === "a" || cmd === "inicio") {
-        user.supMomento = "INICIO_OBRA"; // [cite: 98]
+        user.supMomento = "INICIO_OBRA";
         reply = `🏗️ *INICIO DE OBRA*.
-Por favor, envía la FOTO de los *materiales entregados*:`; // [cite: 99]
+Por favor, envía la FOTO de los *materiales entregados*:`; 
         user.step = 341;
       } else if (["b", "c", "durante", "fin"].includes(cmd)) {
-        user.supMomento = "PROCESO_FIN_OBRA"; // [cite: 102]
+        user.supMomento = "PROCESO_FIN_OBRA";
         reply = `🏗️ *DURANTE / FIN DE OBRA*.
 Sube las evidencias del proceso (mínimo 6 fotos). 
-Cuando termines de subir las fotos, escribe tu *COMENTARIO/REPORTE*:`; // [cite: 104]
+Cuando termines de subir las fotos, escribe tu *COMENTARIO/REPORTE*:`;
         user.step = 345;
       } else {
         reply = "❌ Selecciona A, B o C.";
@@ -610,19 +606,19 @@ Cuando termines de subir las fotos, escribe tu *COMENTARIO/REPORTE*:`; // [cite:
       break;
 
     case 341: // SUP Inicio - Foto Materiales
-      user.supFotoMateriales = mediaUrl; // [cite: 99]
-      reply = `📸 Recibido. Ahora envía la foto de *Firma del instalador* (recibió material):`; // [cite: 100]
+      user.supFotoMateriales = mediaUrl; 
+      reply = `📸 Recibido. Ahora envía la foto de *Firma del instalador* (recibió material):`; 
       user.step = 342;
       break;
 
     case 342: // SUP Inicio - Foto Firma Instalador
-      user.supFotoInstalador = mediaUrl; // [cite: 100]
-      reply = `📸 Recibido. Por último, envía la foto de *Firma del cliente*:`; // [cite: 101]
+      user.supFotoInstalador = mediaUrl; 
+      reply = `📸 Recibido. Por último, envía la foto de *Firma del cliente*:`; 
       user.step = 343;
       break;
 
     case 343: // Cierre SUP Inicio
-      user.supFotoCliente = mediaUrl; // [cite: 101]
+      user.supFotoCliente = mediaUrl;
       reply = `✅ *Supervisión de Inicio de Obra registrada.*
 
 Escribe *MENU* para volver al inicio.`;
@@ -630,18 +626,18 @@ Escribe *MENU* para volver al inicio.`;
       break;
 
     case 345: // Cierre SUP Durante/Fin (Después de recibir fotos y comentario)
-      user.supComentario = msg; // [cite: 104]
+      user.supComentario = msg;
       reply = `✅ Cierre de reporte. Selecciona el estatus final:
 
 A) OK
 B) DESVIACIÓN MENOR
 C) DESVIACIÓN MAYOR
-D) DETENER POR SEGURIDAD`; // [cite: 105]
+D) DETENER POR SEGURIDAD`;
       user.step = 346;
       break;
 
     case 346: // Estatus Final SUP
-      user.supEstatus = msg; // [cite: 105]
+      user.supEstatus = msg;
       reply = `✅ *Ticket de Supervisión actualizado exitosamente.*
 
 Escribe *MENU* para volver al inicio.`;
@@ -649,7 +645,7 @@ Escribe *MENU* para volver al inicio.`;
       break;
 
     // ==========================================
-    // RAMA 400: ASESOR - Handoff
+    // RAMA 400: ASESOR - Handoff (Reservado por si se ocupa a futuro)
     // ==========================================
     case 400:
       user.nombreAsesor = msg;
@@ -670,19 +666,6 @@ Escribe *MENU* para volver al inicio.`;
 // =======================
 // HELPERS
 // =======================
-function resumenCotizacion(user) {
-  return `📋 *Resumen de Cotización*
-
-📌 Tipo: ${user.cotizacionTipo}
-👤 Datos: ${user.datosContacto}
-📞 Tel Wa: ${user.telefonoWa}
-📍 Ubicación: Recibida ✅
-📎 Detalle/Evidencia: ${user.media ? "Foto/Documento recibido" : user.evidencia}
-
-🅰️ Confirmar y generar folio
-🅱️ Cancelar`;
-}
-
 function send(res, text) {
   const twiml = new MessagingResponse();
   twiml.message(text);
