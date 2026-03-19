@@ -120,9 +120,17 @@ E) Otro`;
       }
       user.cotizacionTipo = tiposCotizacion[cmd];
       
-      if (user.cotizacionTipo === "Paneles Solares" || user.cotizacionTipo === "Diagnóstico Energético") {
+      if (user.cotizacionTipo === "Paneles Solares") {
         reply = `Proporcionanos tu nombre:`;
         user.step = 110;
+      } else if (user.cotizacionTipo === "Diagnóstico Energético") {
+        // Ajuste: Pregunta de sector añadida para Diagnóstico
+        reply = `¿El servicio es para sector privado o público?
+
+A) Privado
+B) Municipio
+C) Gobierno del Estado`;
+        user.step = 115;
       } else if (user.cotizacionTipo === "Calentadores Solares") {
         reply = `Tu servicio es para:
 
@@ -141,6 +149,13 @@ D) Otro`;
       }
       break;
 
+    // --- NUEVO SUB-PASO: Sector para Diagnóstico Energético ---
+    case 115:
+      user.sector = msg;
+      reply = `Proporcionanos tu nombre:`;
+      user.step = 110;
+      break;
+
     // --- SUB-RAMA: Paneles Solares / Diagnóstico Energético ---
     case 110: 
       user.nombre = msg;
@@ -157,26 +172,51 @@ B) Comercial
 C) Industrial`;
         user.step = 112;
       } else {
-        // Asumimos que envió imagen o un texto distinto que funge como recibo
         user.evidenciaRecibo = mediaUrl ? mediaUrl : msg;
         reply = darFolioYDespedir();
       }
       break;
 
+
     case 112:
-      user.servicioTipo = msg; // Guarda si es doméstico, comercial o industrial
-      reply = `¿Cuánto pagas mensualmente a CFE?`;
-      user.step = 113;
+      user.pagoCfe = msg;
+      // Ajuste: Nueva pregunta de rangos
+      reply = `¿Cuál es el rango de gasto de luz que haces al mes?
+
+A) 2500 o menos
+B) 2500 a 10000
+C) 10000 a 40000
+D) 40000 a 100000
+E) 100000+`;
+      user.step = 114;
       break;
 
-    case 113:
-      user.pagoCfe = msg;
+    case 114:
+      user.rangoLuz = msg;
       reply = darFolioYDespedir();
       break;
 
     // --- SUB-RAMA: Calentadores Solares ---
     case 120:
-      user.calentadorUso = msg; // Guarda la opción elegida
+      user.calentadorUso = msg;
+      // Ajuste: Pregunta de sector
+      reply = `¿El servicio es para sector privado o público?
+
+A) Privado
+B) Municipio
+C) Gobierno del Estado`;
+      user.step = 122;
+      break;
+
+    case 122:
+      user.sector = msg;
+      // Ajuste: Pregunta de gasto de gas
+      reply = `¿Cuánto pagas al mes en gas?`;
+      user.step = 123;
+      break;
+
+    case 123:
+      user.pagoGas = msg;
       reply = `Proporcionanos tu nombre:`;
       user.step = 121;
       break;
@@ -188,11 +228,22 @@ C) Industrial`;
 
     // --- SUB-RAMA: Alumbrado Público ---
     case 130:
-      user.alumbradoOpcion = msg; // Guarda si quiere LED o proyecto eléctrico
+      user.alumbradoOpcion = msg;
+      // Ajuste: Pregunta de sector
+      reply = `¿El servicio es para sector privado o público?
+
+A) Privado
+B) Municipio
+C) Gobierno del Estado`;
+      user.step = 132;
+      break;
+      
+    case 132:
+      user.sector = msg;
       reply = `Proporcionanos tu nombre:`;
       user.step = 131;
       break;
-      
+
     case 131:
       user.nombre = msg;
       reply = darFolioYDespedir();
