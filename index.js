@@ -54,6 +54,15 @@ Escribe *MENU* para volver al inicio.`;
     return mensaje;
   };
 
+  // Texto reutilizable para la pregunta de rangos de luz
+  const textoRangosLuz = `¿Cuál es el rango de gasto de luz que haces al mes?
+
+A) $2,500 o menos
+B) $2,500 a $10,000
+C) $10,000 a $40,000
+D) $40,000 a $100,000
+E) $100,000+`;
+
   // =======================
   // COMANDOS GLOBALES
   // =======================
@@ -111,7 +120,7 @@ E) Otro`;
       break;
 
     // ==========================================
-    // RAMA 100: QUIERO SER CLIENTE (Nuevo Flujo)
+    // RAMA 100: QUIERO SER CLIENTE
     // ==========================================
     case 100: // C1 - Tipo de servicio
       if (!tiposCotizacion[cmd]) {
@@ -124,7 +133,6 @@ E) Otro`;
         reply = `Proporcionanos tu nombre:`;
         user.step = 110;
       } else if (user.cotizacionTipo === "Diagnóstico Energético") {
-        // Ajuste: Pregunta de sector añadida para Diagnóstico
         reply = `¿El servicio es para sector privado o público?
 
 A) Privado
@@ -149,14 +157,20 @@ D) Otro`;
       }
       break;
 
-    // --- NUEVO SUB-PASO: Sector para Diagnóstico Energético ---
+    // --- SUB-RAMA: Diagnóstico Energético ---
     case 115:
       user.sector = msg;
+      reply = `¿De qué ciudad y estado nos escribes?`;
+      user.step = 116;
+      break;
+
+    case 116:
+      user.ciudadEstado = msg;
       reply = `Proporcionanos tu nombre:`;
       user.step = 110;
       break;
 
-    // --- SUB-RAMA: Paneles Solares / Diagnóstico Energético ---
+    // --- SUB-RAMA COMÚN: Paneles Solares / Diagnóstico Energético ---
     case 110: 
       user.nombre = msg;
       reply = `Proporciona tu recibo en imagen o pdf, si no lo tienes a la mano escribe NO LO TENGO`;
@@ -165,33 +179,33 @@ D) Otro`;
 
     case 111: 
       if (cmd === "no lo tengo") {
-        reply = `Tu servicio es:
+        if (user.cotizacionTipo === "Diagnóstico Energético") {
+          // Si es Diagnóstico Energético, saltamos la pregunta de Doméstico/Comercial y vamos directo a rangos
+          reply = textoRangosLuz;
+          user.step = 114;
+        } else {
+          // Si es Paneles Solares, preguntamos primero el tipo
+          reply = `Tu servicio es:
 
 A) Doméstico
 B) Comercial
 C) Industrial`;
-        user.step = 112;
+          user.step = 112;
+        }
       } else {
         user.evidenciaRecibo = mediaUrl ? mediaUrl : msg;
         reply = darFolioYDespedir();
       }
       break;
 
-
-    case 112:
-      user.pagoCfe = msg;
-      // Ajuste: Nueva pregunta de rangos
-      reply = `¿Cuál es el rango de gasto de luz que haces al mes?
-
-A) 2500 o menos
-B) 2500 a 10,000
-C) 10,000 a 40,000
-D) 40,000 a 100,000
-E) 100,000+`;
+    case 112: // Exclusivo de Paneles Solares ahora
+      user.servicioTipo = msg;
+      // Reemplazamos la pregunta abierta por la de los rangos
+      reply = textoRangosLuz;
       user.step = 114;
       break;
 
-    case 114:
+    case 114: // Respuesta a los rangos de luz
       user.rangoLuz = msg;
       reply = darFolioYDespedir();
       break;
@@ -199,7 +213,6 @@ E) 100,000+`;
     // --- SUB-RAMA: Calentadores Solares ---
     case 120:
       user.calentadorUso = msg;
-      // Ajuste: Pregunta de sector
       reply = `¿El servicio es para sector privado o público?
 
 A) Privado
@@ -210,7 +223,12 @@ C) Gobierno del Estado`;
 
     case 122:
       user.sector = msg;
-      // Ajuste: Pregunta de gasto de gas
+      reply = `¿De qué ciudad y estado nos escribes?`;
+      user.step = 124;
+      break;
+
+    case 124:
+      user.ciudadEstado = msg;
       reply = `¿Cuánto pagas al mes en gas?`;
       user.step = 123;
       break;
@@ -229,7 +247,6 @@ C) Gobierno del Estado`;
     // --- SUB-RAMA: Alumbrado Público ---
     case 130:
       user.alumbradoOpcion = msg;
-      // Ajuste: Pregunta de sector
       reply = `¿El servicio es para sector privado o público?
 
 A) Privado
@@ -240,6 +257,12 @@ C) Gobierno del Estado`;
       
     case 132:
       user.sector = msg;
+      reply = `¿De qué ciudad y estado nos escribes?`;
+      user.step = 133;
+      break;
+
+    case 133:
+      user.ciudadEstado = msg;
       reply = `Proporcionanos tu nombre:`;
       user.step = 131;
       break;
@@ -404,21 +427,21 @@ Presiona ➕ o 📎 y selecciona *Ubicación*.`;
 
 🅰️ PREVENTIVO
 🅱️ CORRECTIVO`; 
-        user.step = 310; // Espacio reservado para flujo de Mantenimiento
+        user.step = 310; 
       } else if (user.moduloPersonal === "VISITA") {
         reply = `📋 Módulo Visita. 
 Por favor, escribe el Nombre del TITULAR de CFE, el RPU y la TARIFA:`; 
-        user.step = 320; // Espacio reservado para flujo de Visita
+        user.step = 320; 
       } else if (user.moduloPersonal === "MONITOREO") {
         reply = `📸 Por favor, envía la FOTO del monitor físico existente (Obligatorio):`; 
-        user.step = 330; // Espacio reservado para flujo de Monitoreo
+        user.step = 330; 
       } else if (user.moduloPersonal === "SUPERVISION") {
         reply = `🏗️ ¿En qué momento de la obra te encuentras?
 
 A) INICIO DE OBRA
 B) DURANTE OBRA
 C) FIN DE OBRA`; 
-        user.step = 340; // Espacio reservado para flujo de Supervisión
+        user.step = 340; 
       }
       break;
 
@@ -453,14 +476,11 @@ E) Otro`;
       }
       break;
 
-    // --- SUB-RAMA PREVENTIVO ---
-    case 3101: // Validación de Selección Múltiple del Checklist
+    case 3101: 
       const input = msg.replace(/\s/g, ''); 
-      
-      // Validamos que el técnico confirme AL MENOS UNA de las tareas
       if (input.includes('1') || input.includes('2') || input.includes('3') || input.includes('4')) {
          user.mttoChecklistConfirmado = true;
-         user.mttoTareasRealizadas = msg; // Guardamos lo que contestó para el backend
+         user.mttoTareasRealizadas = msg; 
          
          reply = `✅ Tareas registradas. 
          
@@ -474,7 +494,7 @@ Por favor, escribe el número o números de las tareas que completaste (ej. 1 o 
       }
       break;
 
-    case 311: // PM4 - Recepción de fotos Preventivo
+    case 311: 
       if (cmd !== "listo") {
         reply = "✅ Foto recibida. Envía la siguiente o escribe *LISTO*.";
         break;
@@ -487,7 +507,7 @@ C) REQUIERE CORRECTIVO`;
       user.step = 312;
       break;
 
-    case 312: // Cierre Preventivo
+    case 312: 
       user.mttoCierre = msg; 
       reply = `✅ *Ticket de Mantenimiento Preventivo cerrado exitosamente.* Buen trabajo.
 
@@ -495,17 +515,16 @@ Escribe *MENU* para volver al inicio.`;
       delete sessions[from];
       break;
 
-      
     // ==========================================
     // RAMA 320: PERSONAL -> VISITA TÉCNICA (PV)
     // ==========================================
-    case 320: // PV2 - Datos CFE capturados
+    case 320: 
       user.visDatosCfe = msg; 
       reply = `📸 Excelente. Ahora envía la *FOTO del Medidor* (Obligatoria):`; 
       user.step = 321;
       break;
 
-    case 321: // Combina PV3 y PV4
+    case 321: 
       if (!mediaUrl) {
         reply = "⚠️ Por favor, adjunta la foto del medidor para continuar."; 
         break;
@@ -518,7 +537,7 @@ Escribe *MENU* para volver al inicio.`;
       user.step = 322;
       break;
 
-    case 322: // Combina PV5 y PV6
+    case 322: 
       user.visInmuebleParams = msg; 
       reply = `⚡ Siguientes datos:
 1️⃣ *Sombras y Gas*: (ej. SIN SOMBRAS, GAS NO)
@@ -527,7 +546,7 @@ Escribe *MENU* para volver al inicio.`;
       user.step = 323;
       break;
 
-    case 323: // Combina PV7 y PV8
+    case 323: 
       user.visTrafoParams = msg; 
       reply = `🔌 Instalación eléctrica:
 1️⃣ *Suministro*: (MONO / BIFÁSICO / TRIFÁSICO)
@@ -536,7 +555,7 @@ Escribe *MENU* para volver al inicio.`;
       user.step = 324;
       break;
 
-    case 324: // Combina PV9 y PV10
+    case 324: 
       user.visElecParams = msg; 
       reply = `📏 *Distancias y Preferencias*:
 1️⃣ Distancia PANEL a INVERSOR (m):
@@ -545,7 +564,7 @@ Escribe *MENU* para volver al inicio.`;
       user.step = 325;
       break;
 
-    case 325: // PV11 - Evidencias fotográficas múltiples
+    case 325: 
       user.visDistPreferencias = msg; 
       reply = `📸 *Evidencia Fotográfica* (Envía las fotos necesarias):
 - Azotea/Sitio
@@ -557,7 +576,7 @@ Cuando termines de enviar las fotos, escribe la palabra *LISTO*.`;
       user.step = 326;
       break;
 
-    case 326: // Espera de fotos o salto a Croquis
+    case 326: 
       if (cmd !== "listo") {
         reply = "✅ Foto recibida. Envía la siguiente o escribe *LISTO*.";
         break;
@@ -566,7 +585,7 @@ Cuando termines de enviar las fotos, escribe la palabra *LISTO*.`;
       user.step = 327;
       break;
 
-    case 327: // PV13 - Cierre de Visita
+    case 327: 
       if (!mediaUrl) {
          reply = "⚠️ Adjunta la foto del croquis."; 
          break;
@@ -578,11 +597,10 @@ Escribe *MENU* para volver al inicio.`;
       delete sessions[from];
       break;
 
-
     // ==========================================
     // RAMA 330: PERSONAL -> MONITOREO (MON)
     // ==========================================
-    case 330: // Primer paso que se asigna en el case 303
+    case 330: 
       if (!mediaUrl) {
         reply = "⚠️ La FOTO del monitor físico es obligatoria."; 
         break;
@@ -620,7 +638,7 @@ B) NO (NO EN LÍNEA)`;
       }
       break;
 
-    case 334: // Cierre Monitoreo (SI en línea)
+    case 334: 
       user.monEvidenciaFinal = mediaUrl; 
       reply = `✅ *Ticket de Monitoreo actualizado exitosamente.*
 
@@ -628,7 +646,7 @@ Escribe *MENU* para volver al inicio.`;
       delete sessions[from];
       break;
 
-    case 335: // Cierre Monitoreo (NO en línea)
+    case 335: 
       user.monPlan = msg; 
       reply = `✅ *Ticket de Monitoreo actualizado exitosamente (Pendiente de acción).*
 
@@ -639,7 +657,7 @@ Escribe *MENU* para volver al inicio.`;
     // ==========================================
     // RAMA 340: PERSONAL -> SUPERVISIÓN (SUP)
     // ==========================================
-    case 340: // Recepción Momento de Obra
+    case 340: 
       if (cmd === "a" || cmd === "inicio") {
         user.supMomento = "INICIO_OBRA";
         reply = `🏗️ *INICIO DE OBRA*.
@@ -656,19 +674,19 @@ Cuando termines de subir las fotos, escribe tu *COMENTARIO/REPORTE*:`;
       }
       break;
 
-    case 341: // SUP Inicio - Foto Materiales
+    case 341: 
       user.supFotoMateriales = mediaUrl; 
       reply = `📸 Recibido. Ahora envía la foto de *Firma del instalador* (recibió material):`; 
       user.step = 342;
       break;
 
-    case 342: // SUP Inicio - Foto Firma Instalador
+    case 342: 
       user.supFotoInstalador = mediaUrl; 
       reply = `📸 Recibido. Por último, envía la foto de *Firma del cliente*:`; 
       user.step = 343;
       break;
 
-    case 343: // Cierre SUP Inicio
+    case 343: 
       user.supFotoCliente = mediaUrl;
       reply = `✅ *Supervisión de Inicio de Obra registrada.*
 
@@ -676,7 +694,7 @@ Escribe *MENU* para volver al inicio.`;
       delete sessions[from];
       break;
 
-    case 345: // Cierre SUP Durante/Fin (Después de recibir fotos y comentario)
+    case 345: 
       user.supComentario = msg;
       reply = `✅ Cierre de reporte. Selecciona el estatus final:
 
@@ -687,7 +705,7 @@ D) DETENER POR SEGURIDAD`;
       user.step = 346;
       break;
 
-    case 346: // Estatus Final SUP
+    case 346: 
       user.supEstatus = msg;
       reply = `✅ *Ticket de Supervisión actualizado exitosamente.*
 
@@ -696,7 +714,7 @@ Escribe *MENU* para volver al inicio.`;
       break;
 
     // ==========================================
-    // RAMA 400: ASESOR - Handoff (Reservado por si se ocupa a futuro)
+    // RAMA 400: ASESOR - Handoff 
     // ==========================================
     case 400:
       user.nombreAsesor = msg;
