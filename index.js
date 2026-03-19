@@ -233,20 +233,7 @@ C) Industrial`;
         break;
       }
       user.calentadorUso = msg;
-      reply = `¿El servicio es para sector privado o público?
-
-A) Privado
-B) Municipio
-C) Gobierno del Estado`;
-      user.step = 122;
-      break;
-
-    case 122:
-      if (!["a", "b", "c", "privado", "municipio", "gobierno del estado", "gobierno"].includes(cmd)) {
-        reply = "❌ Por favor selecciona A, B o C.";
-        break;
-      }
-      user.sector = msg;
+      // Salto directo a pedir ciudad y estado omitiendo el sector privado/público
       reply = `¿De qué ciudad y estado nos escribes?`;
       user.step = 124;
       break;
