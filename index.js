@@ -124,14 +124,14 @@ E) Otro`;
     // ==========================================
     case 100: // C1 - Tipo de servicio
       if (!tiposCotizacion[cmd]) {
-        reply = "❌ Selecciona A, B, C, D o E.";
+        reply = "❌ Por favor selecciona una opción válida (A, B, C, D o E).";
         break;
       }
       user.cotizacionTipo = tiposCotizacion[cmd];
       
       if (user.cotizacionTipo === "Paneles Solares") {
-        reply = `Proporcionanos tu nombre:`;
-        user.step = 110;
+        reply = `¿De qué ciudad y estado nos escribes?`;
+        user.step = 105;
       } else if (user.cotizacionTipo === "Diagnóstico Energético") {
         reply = `¿El servicio es para sector privado o público?
 
@@ -157,8 +157,19 @@ D) Otro`;
       }
       break;
 
+    // --- NUEVO PASO: Ciudad y Estado para Paneles Solares ---
+    case 105:
+      user.ciudadEstado = msg;
+      reply = `Proporcionanos tu nombre:`;
+      user.step = 110;
+      break;
+
     // --- SUB-RAMA: Diagnóstico Energético ---
     case 115:
+      if (!["a", "b", "c", "privado", "municipio", "gobierno del estado", "gobierno"].includes(cmd)) {
+        reply = "❌ Por favor selecciona A, B o C.";
+        break;
+      }
       user.sector = msg;
       reply = `¿De qué ciudad y estado nos escribes?`;
       user.step = 116;
@@ -180,11 +191,9 @@ D) Otro`;
     case 111: 
       if (cmd === "no lo tengo") {
         if (user.cotizacionTipo === "Diagnóstico Energético") {
-          // Si es Diagnóstico Energético, saltamos la pregunta de Doméstico/Comercial y vamos directo a rangos
           reply = textoRangosLuz;
           user.step = 114;
         } else {
-          // Si es Paneles Solares, preguntamos primero el tipo
           reply = `Tu servicio es:
 
 A) Doméstico
@@ -198,20 +207,31 @@ C) Industrial`;
       }
       break;
 
-    case 112: // Exclusivo de Paneles Solares ahora
+    case 112: 
+      if (!["a", "b", "c", "domestico", "doméstico", "comercial", "industrial"].includes(cmd)) {
+        reply = "❌ Por favor selecciona A, B o C.";
+        break;
+      }
       user.servicioTipo = msg;
-      // Reemplazamos la pregunta abierta por la de los rangos
       reply = textoRangosLuz;
       user.step = 114;
       break;
 
-    case 114: // Respuesta a los rangos de luz
+    case 114: 
+      if (!["a", "b", "c", "d", "e"].includes(cmd)) {
+        reply = "❌ Por favor selecciona una opción válida (A, B, C, D o E).";
+        break;
+      }
       user.rangoLuz = msg;
       reply = darFolioYDespedir();
       break;
 
     // --- SUB-RAMA: Calentadores Solares ---
     case 120:
+      if (!["a", "b", "c", "d", "casa", "hotel", "alberca", "otro"].includes(cmd)) {
+        reply = "❌ Por favor selecciona A, B, C o D.";
+        break;
+      }
       user.calentadorUso = msg;
       reply = `¿El servicio es para sector privado o público?
 
@@ -222,6 +242,10 @@ C) Gobierno del Estado`;
       break;
 
     case 122:
+      if (!["a", "b", "c", "privado", "municipio", "gobierno del estado", "gobierno"].includes(cmd)) {
+        reply = "❌ Por favor selecciona A, B o C.";
+        break;
+      }
       user.sector = msg;
       reply = `¿De qué ciudad y estado nos escribes?`;
       user.step = 124;
@@ -246,6 +270,10 @@ C) Gobierno del Estado`;
 
     // --- SUB-RAMA: Alumbrado Público ---
     case 130:
+      if (!["a", "b", "led", "proyecto", "proyecto eléctrico", "proyecto electrico"].includes(cmd)) {
+        reply = "❌ Por favor selecciona 🅰️ o 🅱️.";
+        break;
+      }
       user.alumbradoOpcion = msg;
       reply = `¿El servicio es para sector privado o público?
 
@@ -256,6 +284,10 @@ C) Gobierno del Estado`;
       break;
       
     case 132:
+      if (!["a", "b", "c", "privado", "municipio", "gobierno del estado", "gobierno"].includes(cmd)) {
+        reply = "❌ Por favor selecciona A, B o C.";
+        break;
+      }
       user.sector = msg;
       reply = `¿De qué ciudad y estado nos escribes?`;
       user.step = 133;
