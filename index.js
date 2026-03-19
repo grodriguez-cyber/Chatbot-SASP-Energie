@@ -184,10 +184,10 @@ C) Industrial`;
       reply = `¿Cuál es el rango de gasto de luz que haces al mes?
 
 A) 2500 o menos
-B) 2500 a 10000
-C) 10000 a 40000
-D) 40000 a 100000
-E) 100000+`;
+B) 2500 a 10,000
+C) 10,000 a 40,000
+D) 40,000 a 100,000
+E) 100,000+`;
       user.step = 114;
       break;
 
