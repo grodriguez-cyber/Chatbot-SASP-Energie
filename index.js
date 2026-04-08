@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const { MessagingResponse } = require("twilio").twiml;
-// const axios = require("axios"); // Descomentar cuando conecten el backend
+const axios = require("axios"); // Descomentar cuando conecten el backend
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -44,7 +44,7 @@ app.post("/whatsapp", async (req, res) => {
   let reply = "";
 
   // Helper para cerrar venta/cotización y dar folio
-  const darFolioYDespedir = () => {
+  const darFolioYDespedirOLD = () => {
     const folio = Math.floor(1000 + Math.random() * 9000);
     const mensaje = `✅ Tu solicitud ha sido registrada con el folio *${folio}*.
 
@@ -54,6 +54,20 @@ Escribe *MENU* para volver al inicio.`;
     return mensaje;
   };
 
+  const darFolioYDespedir = async () => {
+
+    const response = await enviarClienteRegistro(user);
+  
+    const folio = response?.folio || "TEMP-" + Math.floor(1000 + Math.random() * 9000);
+  
+    const mensaje = `✅ Tu solicitud ha sido registrada con el folio *${folio}*.
+  
+  Un asesor se pondrá en contacto a la brevedad.
+  Escribe *MENU* para volver al inicio.`;
+  
+    delete sessions[from];
+    return mensaje;
+  };
   // Texto reutilizable para la pregunta de rangos de luz
   const textoRangosLuz = `¿Cuál es el rango de gasto de luz que haces al mes?
 
@@ -758,6 +772,37 @@ function send(res, text) {
   const twiml = new MessagingResponse();
   twiml.message(text);
   res.type("text/xml").send(twiml.toString());
+}
+const axios = require("axios");
+
+async function enviarClienteRegistro(user) {
+
+  const url = "http://sasp.energieconsultores-consultas.com.138.201.173.117.nip.io/api/clientes/registro";
+
+  try {
+
+    //  payload dinámico
+    const payload = {
+      nombre: user.nombre,
+
+      ...(user.alumbradoOpcion && { alumbradoOpcion: user.alumbradoOpcion }),
+      ...(user.otroEspecificacion && { otroEspecificacion: user.otroEspecificacion }),
+      ...(user.pagoGas && { pagoGas: Number(user.pagoGas) }),
+     // ...(user.evidenciaRecibo && { evidenciaRecibo: user.evidenciaRecibo }),
+      ...(user.servicioTipo && { servicioTipo: user.servicioTipo }),
+      ...(user.rangoLuz && { rangoLuz: user.rangoLuz })
+    };
+
+    console.log("📤 Payload final:", payload);
+
+    const response = await axios.post(url, payload);
+
+    return response.data;
+
+  } catch (error) {
+    console.error("❌ Error enviando cliente:", error.message);
+    return null;
+  }
 }
 
 app.listen(process.env.PORT || 3000, () => {
