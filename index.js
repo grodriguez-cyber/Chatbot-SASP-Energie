@@ -773,14 +773,14 @@ function send(res, text) {
   twiml.message(text);
   res.type("text/xml").send(twiml.toString());
 }
-const axios = require("axios");
+ 
 
 async function enviarClienteRegistro(user) {
 
   const url = "http://sasp.energieconsultores-consultas.com.138.201.173.117.nip.io/api/clientes/registro";
 
   try {
-
+console.log("📥 Enviando cliente al backend:", user);
     //  payload dinámico
     const payload = {
       nombre: user.nombre,
