@@ -8,7 +8,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // Memoria temporal para sesiones (Máquina de estados)
 const sessions = {};
 const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutos en milisegundos
-
+const URL_API = 'http://sasp.energieconsultores-consultas.com.138.201.173.117.nip.io/api'
 // =======================
 // CONFIGURACIÓN SASP
 // =======================
@@ -61,7 +61,7 @@ Escribe *MENU* para volver al inicio.`;
   
      const folio = response?.folio;
 
-    if (user.mediaUrl || user.evidenciaRecibo) {
+    if (user.mediaUrl || user.evidenciaRecibo && response!==null) {
       await enviarEvidencia(user, folio);
     }
   
@@ -805,7 +805,7 @@ function send(res, text) {
  
 async function enviarClienteRegistro(user) {
 
-  const url = "http://TU_API/api/clientes/registro";
+  const url = `${URL_API}/clientes/registro`;
 
   try {
     const payload = {
@@ -834,7 +834,7 @@ async function enviarClienteRegistro(user) {
 
 async function enviarSoporte(user) {
 
-  const url = "http://TU_API/api/soporte/reporte";
+  const url = `${URL_API}/soporte/reporte`;
 
   try {
 
@@ -859,7 +859,7 @@ async function enviarSoporte(user) {
 
 async function crearOperacion(user) {
 
-  const url = "http://TU_API/api/staff/operacion";
+  const url = `${URL_API}/api/staff/operacion`;
 
   try {
 
@@ -882,7 +882,7 @@ async function crearOperacion(user) {
 
 async function enviarMantenimiento(user, operacionId) {
 
-  return axios.post("http://TU_API/api/staff/mantenimiento", {
+  return axios.post(`${URL_API}/staff/mantenimiento`, {
     operacionId,
     tipo: user.mttoTipo,
     tareas: user.mttoTareasRealizadas,
@@ -893,7 +893,7 @@ async function enviarMantenimiento(user, operacionId) {
 
 async function enviarVisita(user, operacionId) {
 
-  return axios.post("http://TU_API/api/staff/visita", {
+  return axios.post(`${URL_API}/staff/visita`, {
     operacionId,
     datosCfe: user.visDatosCfe,
     fotoMedidor: user.visFotoMedidor,
@@ -908,7 +908,7 @@ async function enviarVisita(user, operacionId) {
 
 async function enviarMonitoreo(user, operacionId) {
 
-  return axios.post("http://TU_API/api/staff/monitoreo", {
+  return axios.post(`${URL_API}/staff/monitoreo`, {
     operacionId,
     foto: user.monFoto,
     wifi: user.monWifi,
@@ -921,7 +921,7 @@ async function enviarMonitoreo(user, operacionId) {
 
 async function enviarEvidencia(user, folio) {
 
-  const url = "http://TU_API/api/evidencia";
+  const url = `${URL_API}/evidencia`;
 
   try {
 
