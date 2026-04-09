@@ -57,8 +57,13 @@ Escribe *MENU* para volver al inicio.`;
   const darFolioYDespedir = async () => {
 
     const response = await enviarClienteRegistro(user);
+    console.log("resppnse cliente registro:", response);
   
-    const folio = response?.folio || "TEMP-" + Math.floor(1000 + Math.random() * 9000);
+     const folio = response?.folio;
+
+    if (user.mediaUrl || user.evidenciaRecibo) {
+      await enviarEvidencia(user, folio);
+    }
   
     const mensaje = `✅ Tu solicitud ha sido registrada con el folio *${folio}*.
   
@@ -217,6 +222,7 @@ C) Industrial`;
         }
       } else {
         user.evidenciaRecibo = mediaUrl ? mediaUrl : msg;
+        user.mediaUrl = mediaUrl;
         reply = darFolioYDespedir();
       }
       break;
@@ -375,6 +381,7 @@ Presiona ➕ o 📎 y selecciona *Ubicación*:`;
 
     case 204: // SOPORTE Falla - Captura Descripción
       user.fallaDesc = msg;
+      await enviarSoporte(user);
       reply = `✅ Falla registrada correctamente. Nuestro equipo de mantenimiento lo revisará.
 
 Escribe *MENU* para volver al inicio.`; 
@@ -383,6 +390,7 @@ Escribe *MENU* para volver al inicio.`;
 
     case 205: // SOPORTE - Factura/Garantía/Otro
       user.soporteDetalle = msg; 
+      await enviarSoporte(user);
       reply = `✅ Tu solicitud ha sido registrada y asignada.
 
 Escribe *MENU* para volver al inicio.`;
@@ -542,6 +550,11 @@ C) REQUIERE CORRECTIVO`;
 
     case 312: 
       user.mttoCierre = msg; 
+      const operacionId = await crearOperacion(user);
+
+      if (operacionId) {
+        await enviarMantenimiento(user, operacionId);
+      }
       reply = `✅ *Ticket de Mantenimiento Preventivo cerrado exitosamente.* Buen trabajo.
 
 Escribe *MENU* para volver al inicio.`;
@@ -624,6 +637,11 @@ Cuando termines de enviar las fotos, escribe la palabra *LISTO*.`;
          break;
       }
       user.visCroquis = mediaUrl; 
+      const operacionIdC = await crearOperacion(user);
+
+      if (operacionIdC) {
+        await enviarVisita(user, operacionIdC);
+      }
       reply = `✅ *Visita Técnica finalizada.* Estatus: INFO COMPLETA (Pasando a diseño/cotización).
 
 Escribe *MENU* para volver al inicio.`;
@@ -673,6 +691,12 @@ B) NO (NO EN LÍNEA)`;
 
     case 334: 
       user.monEvidenciaFinal = mediaUrl; 
+
+      const operacionIdCR = await crearOperacion(user);
+
+      if (operacionIdCR) {
+        await enviarMonitoreo(user, operacionIdCR);
+      }
       reply = `✅ *Ticket de Monitoreo actualizado exitosamente.*
 
 Escribe *MENU* para volver al inicio.`;
@@ -721,6 +745,11 @@ Cuando termines de subir las fotos, escribe tu *COMENTARIO/REPORTE*:`;
 
     case 343: 
       user.supFotoCliente = mediaUrl;
+      const operacionIdS = await crearOperacion(user);
+
+      if (operacionIdS) {
+        await enviarSupervision(user, operaciooperacionIdSnId);
+      }
       reply = `✅ *Supervisión de Inicio de Obra registrada.*
 
 Escribe *MENU* para volver al inicio.`;
@@ -774,36 +803,173 @@ function send(res, text) {
   res.type("text/xml").send(twiml.toString());
 }
  
-
 async function enviarClienteRegistro(user) {
 
-  const url = "http://sasp.energieconsultores-consultas.com.138.201.173.117.nip.io/api/clientes/registro";
+  const url = "http://TU_API/api/clientes/registro";
 
   try {
-console.log("📥 Enviando cliente al backend:", user);
-    //  payload dinámico
     const payload = {
       nombre: user.nombre,
+      telefono: user.from,
+      direccion: user.ciudadEstado,
+      cotizacionTipo: user.cotizacionTipo,
 
-      ...(user.alumbradoOpcion && { alumbradoOpcion: user.alumbradoOpcion }),
-      ...(user.otroEspecificacion && { otroEspecificacion: user.otroEspecificacion }),
-      ...(user.pagoGas && { pagoGas: Number(user.pagoGas) }),
-     // ...(user.evidenciaRecibo && { evidenciaRecibo: user.evidenciaRecibo }),
-      ...(user.servicioTipo && { servicioTipo: user.servicioTipo }),
-      ...(user.rangoLuz && { rangoLuz: user.rangoLuz })
+      propuesta_opcion:
+        user.alumbradoOpcion || user.cotizacionTipo,
+
+      otroEspecificacion: user.otroEspecificacion,
+      pagoGas: user.pagoGas,
+      servicioTipo: user.servicioTipo,
+      rangoLuz: user.rangoLuz
     };
 
-    console.log("📤 Payload final:", payload);
+    const response = await axios.post(url, payload);
+    return response.data;
+
+  } catch (error) {
+    console.error("❌ Error cliente:", error.message);
+    return null;
+  }
+}
+
+async function enviarSoporte(user) {
+
+  const url = "http://TU_API/api/soporte/reporte";
+
+  try {
+
+    const payload = {
+      folioSoporte: user.folioSoporte,
+      tipoSoporte: user.tipoSoporte || "GENERAL",
+      fallaLat: user.fallaLat,
+      fallaLng: user.fallaLng,
+      fallaDesc: user.fallaDesc,
+      soporteDetalle: user.soporteDetalle,
+      telefono: user.from
+    };
 
     const response = await axios.post(url, payload);
+    return response.data;
+
+  } catch (error) {
+    console.error("❌ Error soporte:", error.message);
+    return null;
+  }
+}
+
+async function crearOperacion(user) {
+
+  const url = "http://TU_API/api/staff/operacion";
+
+  try {
+
+    const payload = {
+      modulo: user.moduloPersonal,
+      clienteNombre: user.clienteNombre,
+      lat: user.lat,
+      lng: user.lng,
+      telefono: user.from
+    };
+
+    const response = await axios.post(url, payload);
+    return response.data?.operacionId;
+
+  } catch (error) {
+    console.error("❌ Error operacion:", error.message);
+    return null;
+  }
+}
+
+async function enviarMantenimiento(user, operacionId) {
+
+  return axios.post("http://TU_API/api/staff/mantenimiento", {
+    operacionId,
+    tipo: user.mttoTipo,
+    tareas: user.mttoTareasRealizadas,
+    estatus: user.mttoCierre
+  });
+
+}
+
+async function enviarVisita(user, operacionId) {
+
+  return axios.post("http://TU_API/api/staff/visita", {
+    operacionId,
+    datosCfe: user.visDatosCfe,
+    fotoMedidor: user.visFotoMedidor,
+    inmueble: user.visInmuebleParams,
+    trafo: user.visTrafoParams,
+    electrico: user.visElecParams,
+    distancias: user.visDistPreferencias,
+    croquis: user.visCroquis
+  });
+
+}
+
+async function enviarMonitoreo(user, operacionId) {
+
+  return axios.post("http://TU_API/api/staff/monitoreo", {
+    operacionId,
+    foto: user.monFoto,
+    wifi: user.monWifi,
+    hallazgo: user.monHallazgo,
+    evidencia: user.monEvidenciaFinal,
+    plan: user.monPlan
+  });
+
+}
+
+async function enviarEvidencia(user, folio) {
+
+  const url = "http://TU_API/api/evidencia";
+
+  try {
+
+    if (!user.mediaUrl && !user.evidenciaRecibo) {
+      return null;
+    }
+
+    console.log("📸 Subiendo evidencia...");
+
+    const form = new FormData();
+
+    form.append("folio", folio);
+
+    // 🔽 Descargar archivo desde Twilio
+    const mediaResponse = await axios.get(user.mediaUrl, {
+      responseType: "arraybuffer",  
+      auth: {
+        username: process.env.TWILIO_ACCOUNT_SID,
+        password: process.env.TWILIO_AUTH_TOKEN
+      }
+    });
+
+    const contentType = mediaResponse.headers["content-type"] || "image/jpeg";
+    const buffer = Buffer.from(mediaResponse.data, "binary");
+ 
+    form.append("evidencia", buffer, {
+      filename: "evidencia.jpg",
+      contentType,
+    }); 
+
+    const headers = form.getHeaders();
+
+    const response = await axios.post(url_foto, form.getBuffer(), {
+      headers,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
+    });
+
+    console.log("✅ Evidencia subida");
 
     return response.data;
 
   } catch (error) {
-    console.error("❌ Error enviando cliente:", error.message);
+    console.error("❌ Error evidencia:", error.message);
     return null;
   }
 }
+
 
 app.listen(process.env.PORT || 3000, () => {
   console.log("Servidor de SASP Energie corriendo...");
