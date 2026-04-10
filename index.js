@@ -57,11 +57,16 @@ app.post("/whatsapp", async (req, res) => {
      if ((user.mediaUrl || user.evidenciaRecibo) && response?.folio) {
       await enviarEvidencia(user, folio);
     }
-  
-    const mensaje = `✅ Tu solicitud ha sido registrada con el folio *${folio}*.
-  
-  Un asesor se pondrá en contacto a la brevedad.
-  Escribe *MENU* para volver al inicio.`;
+    let mensaje=''
+    if(folio!==undefined){
+         mensaje = `✅ Tu solicitud ha sido registrada con el folio *${folio}*.
+      
+      Un asesor se pondrá en contacto a la brevedad.
+      Escribe *MENU* para volver al inicio.`;
+    } else {  
+       mensaje = `Hubo un error registrando tu solicitud. Por favor, intenta de nuevo más tarde.
+                  Escribe *MENU* para volver al inicio.`;
+    }
   
     delete sessions[from];
     return mensaje;
