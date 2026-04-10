@@ -43,25 +43,17 @@ app.post("/whatsapp", async (req, res) => {
   user.lastActivity = Date.now(); // Actualizar timestamp de actividad
   let reply = "";
 
-  // Helper para cerrar venta/cotización y dar folio
-  const darFolioYDespedirOLD = () => {
-    const folio = Math.floor(1000 + Math.random() * 9000);
-    const mensaje = `✅ Tu solicitud ha sido registrada con el folio *${folio}*.
-
-Un asesor se pondrá en contacto a la brevedad.
-Escribe *MENU* para volver al inicio.`;
-    delete sessions[from];
-    return mensaje;
-  };
+  // Helper para cerrar venta/cotización y dar folio 
 
   const darFolioYDespedir = async () => {
+  
 
     const response = await enviarClienteRegistro(user);
-    console.log("resppnse cliente registro:", response);
+    console.log("response cliente registro:", response);
   
      const folio = response?.folio;
 
-    if (user.mediaUrl || user.evidenciaRecibo && response!==null) {
+    if (user.mediaUrl || user.evidenciaRecibo && response.folio!==null) {
       await enviarEvidencia(user, folio);
     }
   
@@ -73,6 +65,7 @@ Escribe *MENU* para volver al inicio.`;
     delete sessions[from];
     return mensaje;
   };
+  
   // Texto reutilizable para la pregunta de rangos de luz
   const textoRangosLuz = `¿Cuál es el rango de gasto de luz que haces al mes?
 
@@ -804,6 +797,7 @@ function send(res, text) {
 }
  
 async function enviarClienteRegistro(user) {
+  console.log("📋 Registrando cliente en el sistema...",user);
 
   const url = `${URL_API}/clientes/registro`;
 
@@ -828,7 +822,7 @@ async function enviarClienteRegistro(user) {
 
   } catch (error) {
     console.error("❌ Error cliente:", error.message);
-    return null;
+    return "Error al registrar cliente. Por favor, intenta de nuevo más tarde.";
   }
 }
 
