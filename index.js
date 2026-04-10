@@ -1,9 +1,10 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const { MessagingResponse } = require("twilio").twiml;
-const axios = require("axios"); // Descomentar cuando conecten el backend
+const axios = require("axios");
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
+const FormData = require("form-data");
 
 // Memoria temporal para sesiones (Máquina de estados)
 const sessions = {};
