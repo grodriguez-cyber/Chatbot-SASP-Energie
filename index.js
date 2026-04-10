@@ -808,10 +808,8 @@ async function enviarClienteRegistro(user) {
       telefono: user.from,
       direccion: user.ciudadEstado,
       cotizacionTipo: user.cotizacionTipo,
-
-      propuesta_opcion:
-        user.alumbradoOpcion || user.cotizacionTipo,
-
+      alumbradoOpcion: user.alumbradoOpcion, 
+      calentadorUso: user.calentadorUso,
       otroEspecificacion: user.otroEspecificacion,
       pagoGas: user.pagoGas,
       servicioTipo: user.servicioTipo,
