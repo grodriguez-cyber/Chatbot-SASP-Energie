@@ -65,7 +65,7 @@ app.post("/whatsapp", async (req, res) => {
     delete sessions[from];
     return mensaje;
   };
-  
+
   // Texto reutilizable para la pregunta de rangos de luz
   const textoRangosLuz = `¿Cuál es el rango de gasto de luz que haces al mes?
 
@@ -948,7 +948,7 @@ async function enviarEvidencia(user, folio) {
 
     const headers = form.getHeaders();
 
-    const response = await axios.post(url_foto, form.getBuffer(), {
+    const response = await axios.post(url, form.getBuffer(), {
       headers,
       maxContentLength: Infinity,
       maxBodyLength: Infinity
