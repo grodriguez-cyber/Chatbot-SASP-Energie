@@ -9,7 +9,7 @@ const FormData = require("form-data");
 // Memoria temporal para sesiones (Máquina de estados)
 const sessions = {};
 const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutos en milisegundos
-const URL_API = 'http://sasp.energieconsultores-consultas.com.138.201.173.117.nip.io/api'
+const URL_API = 'https://energie-crm.energieconsultores.com/api';
 // =======================
 // CONFIGURACIÓN SASP
 // =======================
