@@ -54,7 +54,7 @@ app.post("/whatsapp", async (req, res) => {
   
      const folio = response?.folio;
 
-    if (user.mediaUrl || user.evidenciaRecibo && response.folio!==null) {
+     if ((user.mediaUrl || user.evidenciaRecibo) && response?.folio) {
       await enviarEvidencia(user, folio);
     }
   
@@ -217,7 +217,7 @@ C) Industrial`;
       } else {
         user.evidenciaRecibo = mediaUrl ? mediaUrl : msg;
         user.mediaUrl = mediaUrl;
-        reply = darFolioYDespedir();
+        reply = await darFolioYDespedir();
       }
       break;
 
@@ -237,7 +237,7 @@ C) Industrial`;
         break;
       }
       user.rangoLuz = msg;
-      reply = darFolioYDespedir();
+      reply = await darFolioYDespedir();
       break;
 
     // --- SUB-RAMA: Calentadores Solares ---
@@ -266,7 +266,7 @@ C) Industrial`;
       
     case 121:
       user.nombre = msg;
-      reply = darFolioYDespedir();
+      reply = await darFolioYDespedir();
       break;
 
     // --- SUB-RAMA: Alumbrado Público ---
@@ -302,7 +302,7 @@ C) Gobierno del Estado`;
 
     case 131:
       user.nombre = msg;
-      reply = darFolioYDespedir();
+      reply = await darFolioYDespedir();
       break;
 
     // --- SUB-RAMA: Otro ---
@@ -314,7 +314,7 @@ C) Gobierno del Estado`;
       
     case 141:
       user.nombre = msg;
-      reply = darFolioYDespedir();
+      reply = await darFolioYDespedir();
       break;
 
     // ==========================================
@@ -742,7 +742,7 @@ Cuando termines de subir las fotos, escribe tu *COMENTARIO/REPORTE*:`;
       const operacionIdS = await crearOperacion(user);
 
       if (operacionIdS) {
-        await enviarSupervision(user, operaciooperacionIdSnId);
+        await enviarSupervision(user, operacionIdS);
       }
       reply = `✅ *Supervisión de Inicio de Obra registrada.*
 
@@ -923,14 +923,11 @@ async function enviarEvidencia(user, folio) {
     if (!user.mediaUrl && !user.evidenciaRecibo) {
       return null;
     }
-
-    console.log("📸 Subiendo evidencia...");
-
+  
     const form = new FormData();
 
     form.append("folio", folio);
-
-    // 🔽 Descargar archivo desde Twilio
+ 
     const mediaResponse = await axios.get(user.mediaUrl, {
       responseType: "arraybuffer",  
       auth: {
@@ -954,10 +951,9 @@ async function enviarEvidencia(user, folio) {
       maxContentLength: Infinity,
       maxBodyLength: Infinity
     });
+ 
 
-    console.log("✅ Evidencia subida");
-
-    return response.data;
+    return true
 
   } catch (error) {
     console.error("❌ Error evidencia:", error.message);
