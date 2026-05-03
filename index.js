@@ -915,9 +915,66 @@ async function enviarMonitoreo(user, operacionId) {
     plan: user.monPlan
   });
 
-}
+} 
 
 async function enviarEvidencia(user, folio) {
+  const url = `${URL_API}/evidencia`;
+
+  try {
+    if (!user.mediaUrl && !user.evidenciaRecibo) {
+      return null;
+    }
+
+    const form = new FormData();
+
+    form.append("folio", folio);
+
+    const mediaResponse = await axios.get(user.mediaUrl, {
+      responseType: "arraybuffer",
+      auth: {
+        username: process.env.TWILIO_ACCOUNT_SID,
+        password: process.env.TWILIO_AUTH_TOKEN
+      }
+    });
+
+    const contentType =
+      mediaResponse.headers["content-type"] || "application/octet-stream";
+
+    const buffer = Buffer.from(mediaResponse.data);
+
+    // 🔥 detectar extensión automáticamente
+    let extension = "jpg";
+
+    if (contentType.includes("pdf")) {
+      extension = "pdf";
+    } else if (contentType.includes("png")) {
+      extension = "png";
+    } else if (contentType.includes("jpeg") || contentType.includes("jpg")) {
+      extension = "jpg";
+    }
+
+    form.append("evidencia", buffer, {
+      filename: `evidencia.${extension}`, // 🔥 dinámico
+      contentType
+    });
+
+    const headers = form.getHeaders();
+
+    await axios.post(url, form, {
+      headers,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
+    });
+
+    return true;
+
+  } catch (error) {
+    console.error("❌ Error evidencia:", error.message);
+    return null;
+  }
+}
+
+async function enviarEvidenciaold(user, folio) {
 
   const url = `${URL_API}/evidencia`;
 
